@@ -12,9 +12,20 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
-      - name: Install Android build tools
-        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Prepare the Android SDK (pinned to build-tools 34)
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          ls "$SDK/platforms" "$SDK/build-tools" || true
+          if [ ! -d "$SDK/platforms/android-34" ] || [ ! -d "$SDK/build-tools/34.0.0" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0"
+          fi
+          mkdir -p "$HOME/sdk/platforms" "$HOME/sdk/build-tools"
+          ln -sfn "$SDK/platforms/android-34" "$HOME/sdk/platforms/android-34"
+          ln -sfn "$SDK/build-tools/34.0.0" "$HOME/sdk/build-tools/34.0.0"
+          echo "ANDROID_HOME=$HOME/sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$HOME/sdk" >> "$GITHUB_ENV"
+          ls "$HOME/sdk/platforms/android-34/android.jar" "$HOME/sdk/build-tools/34.0.0/d8"
       - name: Find the project (unpack the zip if that is all the repo has)
         id: src
         run: |
